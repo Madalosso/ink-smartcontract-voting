@@ -51,8 +51,8 @@ mod voting {
         }
 
         #[ink(message)]
-        pub fn get_votes(&self, address: AccountId) -> Option<u32> {
-            self.votes.get(address)
+        pub fn get_votes(&self, address: AccountId) -> u32 {
+            self.votes.get(address).unwrap_or_default()
         }
 
         #[ink(message)]
@@ -104,6 +104,13 @@ mod voting {
         }
     }
 
+    // TODO:
+    // Write unitary tests
+    // Write integration tests
+    // e2e tests?
+    // README file
+    // upload github
+
     /// Unit tests in Rust are normally defined within such a `#[cfg(test)]`
     /// module and test functions are marked with a `#[test]` attribute.
     /// The below code is technically just normal Rust code.
@@ -139,6 +146,7 @@ mod voting {
         /// Imports all the definitions from the outer scope so we can use them here.
         use super::*;
 
+        use ink::primitives::AccountId;
         /// A helper function used for calling contract messages.
         use ink_e2e::ContractsBackend;
 
@@ -160,43 +168,48 @@ mod voting {
             let call_builder = contract.call_builder::<Voting>();
 
             // Then
-            let get = call_builder.get();
-            let get_result = client.call(&ink_e2e::alice(), &get).dry_run().await?;
-            assert!(matches!(get_result.return_value(), false));
+            let alice_account = ink_e2e::account_id(ink_e2e::AccountKeyring::Alice);
+
+            let get_alice_votes = call_builder.get_votes(alice_account);
+            // let alice_votes = call_builder.get_votes(&ink_e2e::alice().public_key());
+            let alice_votes = client
+                .call(&ink_e2e::alice(), &get_alice_votes)
+                .dry_run()
+                .await?;
+            assert!(matches!(alice_votes.return_value(), 0));
 
             Ok(())
         }
 
-        /// We test that we can read and write a value from the on-chain contract.
-        #[ink_e2e::test]
-        async fn it_works(mut client: ink_e2e::Client<C, E>) -> E2EResult<()> {
-            // Given
-            let mut constructor = VotingRef::new(false);
-            let contract = client
-                .instantiate("voting", &ink_e2e::bob(), &mut constructor)
-                .submit()
-                .await
-                .expect("instantiate failed");
-            let mut call_builder = contract.call_builder::<Voting>();
+        // #[ink_e2e::test]
+        // async fn it_works(mut client: ink_e2e::Client<C, E>) -> E2EResult<()> {
+        //     // Given
+        //     let mut constructor = VotingRef::new(false);
+        //     let contract = client
+        //         .instantiate("voting", &ink_e2e::bob(), &mut constructor)
+        //         .submit()
+        //         .await
+        //         .expect("instantiate failed");
+        //     let mut call_builder = contract.call_builder::<Voting>();
 
-            let get = call_builder.get();
-            let get_result = client.call(&ink_e2e::bob(), &get).dry_run().await?;
-            assert!(matches!(get_result.return_value(), false));
+        //     let get = call_builder.get();
+        //     let get_result = client.call(&ink_e2e::bob(), &get).dry_run().await?;
+        //     assert!(matches!(get_result.return_value(), false));
 
-            // When
-            let flip = call_builder.flip();
-            let _flip_result = client
-                .call(&ink_e2e::bob(), &flip)
-                .submit()
-                .await
-                .expect("flip failed");
+        //     // When
+        //     let flip = call_builder.flip();
+        //     let _flip_result = client
+        //         .call(&ink_e2e::bob(), &flip)
+        //         .submit()
+        //         .await
+        //         .expect("flip failed");
 
-            // Then
-            let get = call_builder.get();
-            let get_result = client.call(&ink_e2e::bob(), &get).dry_run().await?;
-            assert!(matches!(get_result.return_value(), true));
+        //     // Then
+        //     let get = call_builder.get();
+        //     let get_result = client.call(&ink_e2e::bob(), &get).dry_run().await?;
+        //     assert!(matches!(get_result.return_value(), true));
 
-            Ok(())
-        }
+        //     Ok(())
+        // }
     }
 }
