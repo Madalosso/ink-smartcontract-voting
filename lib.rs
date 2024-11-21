@@ -75,6 +75,7 @@ mod voting {
             }
 
             // Issue: Potential overflow
+            // Could use saturating_add so it wont return an error.
             match current_votes.checked_add(1) {
                 Some(new_votes) => self.votes.insert(address, &new_votes),
                 None => return Err(VoteError::VoteOverflow),
